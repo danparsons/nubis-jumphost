@@ -14,6 +14,22 @@
         "sudo chmod 755 /etc/nubis.d/migrate"
       ],
       "order": "12"
+    },
+    {
+      "type": "file",
+      "source": "nubis/bin/nubis-lib.sh",
+      "destination": "/tmp/nubis-lib.sh",
+      "order": "13"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "mkdir -p /usr/local/lib/nubis",
+        "sudo mv /tmp/nubis-lib.sh /usr/local/lib/nubis",
+        "sudo chown root:root /usr/local/lib/nubis/nubis-lib.sh",
+        "sudo chmod 644 /usr/local/lib/nubis/nubis-lib.sh"
+      ],
+      "order": "14"
     }
   ]
 }
