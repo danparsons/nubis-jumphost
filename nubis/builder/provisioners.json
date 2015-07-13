@@ -24,7 +24,7 @@
     {
       "type": "shell",
       "inline": [
-        "mkdir -p /usr/local/lib/nubis",
+        "sudo mkdir -p /usr/local/lib/nubis",
         "sudo mv /tmp/nubis-lib.sh /usr/local/lib/nubis",
         "sudo chown root:root /usr/local/lib/nubis/nubis-lib.sh",
         "sudo chmod 644 /usr/local/lib/nubis/nubis-lib.sh"
