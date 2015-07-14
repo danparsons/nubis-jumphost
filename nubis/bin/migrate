@@ -24,7 +24,7 @@ if [[ -z "${INSTANCE_IP}" ]]; then
     exit 1
 fi
 
-logmsg migrate "Associating ${elasticip_id} to ${INSTANCE_ID}
+logmsg migrate "Associating ${elasticip_id} to ${INSTANCE_ID}"
 aws ec2 associate-address --instance-id ${INSTANCE_ID} --allocation-id ${elasticip_id} --private-ip-address ${INSTANCE_IP} --region ${EC2_REGION}
 RV=$?
 
