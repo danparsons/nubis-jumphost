@@ -57,15 +57,36 @@ def getAllUserdata():
         userdata[user] = data
     return userdata
 
-def writeToConsul():
+def writeToConsul(userdata):
     consul_host = _config.get('consul', 'server')
     consul_port = _config.get('consul', 'port')
     consul_scheme = _config.get('consul', 'scheme')
+    consul_path = _config.get('consul', 'path')
     c = consul.Consul(host=consul_host, port=consul_port, scheme=consul_scheme)
+    for user in userdata:
+        for attr in userdata[user]:
+            key = "%s/%s/%s" % (consul_path, user, attr)
+
+            # This enables support for multiple ssh keys
+            if attr == "sshPublicKey":
+                keynum = 0
+                for sshkey in userdata[user]["sshPublicKey"]:
+                    consul_key = "%s/sshkey%s" % (key, keynum)
+                    consul_value = userdata[user]["sshPublicKey"][keynum]
+                    keynum += 1
+                    c.kv.put(consul_key, consul_value)
+            else:
+                # this is a non-sshkey attribute, so only considering the first
+                # value per attr
+                value = userdata[user][attr][0]
+                c.kv.put(key, value)
+            #print value
+
 
 def main():
     load_config("ldap2consul.conf")
     userdata = getAllUserdata()
+    writeToConsul(userdata)
 
 if __name__ == '__main__':
     main()
