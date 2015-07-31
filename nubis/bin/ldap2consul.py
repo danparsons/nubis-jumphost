@@ -32,7 +32,7 @@ def getLDAPUsers(ldap_conn):
         print e
     return users
 
-def getUserData(ldap_conn, user):
+def getDataForUser(ldap_conn, user):
     searchbase = user
     searchfilter = user
     attributes = _config.get('ldap', 'attributes').split(" ")
@@ -40,31 +40,32 @@ def getUserData(ldap_conn, user):
     result_type, result_data = ldap_conn.result(sid, 0)
     return result_data[0][1]
 
-def main():
+def getAllUserdata():
     userdata = {}
-    load_config("ldap2consul.conf")
     server = _config.get('ldap', 'server')
     binduser = _config.get('ldap', 'binduser')
     bindpass = _config.get('ldap', 'bindpass')
     ldap_conn = ldap.open(server)
     ldap_conn.simple_bind(binduser, bindpass)
     users = getLDAPUsers(ldap_conn)
-    #print getSSHKeysForUser(ldap_conn, "mail=dparsons@mozilla.com,o=com,dc=mozilla")
-    #print getUsernameForUser(ldap_conn, "mail=dparsons@mozilla.com,o=com,dc=mozilla")
-    #print getUserData(ldap_conn, "mail=dparsons@mozilla.com,o=com,dc=mozilla")
     # userdata format: For a given user, their LDAP DN is the key
     # The value all of this key is a dictionary, containing all values specified by
     # 'attributes' in ldap2consul.conf
     # e.g.: print userdata['mail=dparsons@mozilla.com,o=com,dc=mozilla']['sshPublicKey']
     for user in users:
-        data = getUserData(ldap_conn, user)
+        data = getDataForUser(ldap_conn, user)
         userdata[user] = data
-    print userdata
+    return userdata
+
+def writeToConsul():
     consul_host = _config.get('consul', 'server')
     consul_port = _config.get('consul', 'port')
     consul_scheme = _config.get('consul', 'scheme')
-
     c = consul.Consul(host=consul_host, port=consul_port, scheme=consul_scheme)
+
+def main():
+    load_config("ldap2consul.conf")
+    userdata = getAllUserdata()
 
 if __name__ == '__main__':
     main()
