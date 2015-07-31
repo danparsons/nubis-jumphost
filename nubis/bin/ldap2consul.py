@@ -78,10 +78,8 @@ def writeToConsul(userdata):
             else:
                 # this is a non-sshkey attribute, so only considering the first
                 # value per attr
-                value = userdata[user][attr][0]
                 c.kv.put(key, value)
-            #print value
-
+                value = userdata[user][attr][0]
 
 def main():
     load_config("ldap2consul.conf")
