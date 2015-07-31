@@ -23,7 +23,6 @@ def load_config(config_file):
 def getLDAPUsers(ldap_conn):
     searchbase = _config.get('ldap', 'searchbase')
     searchfilter = _config.get('ldap', 'searchfilter')
-    attribute = _config.get('ldap', 'attribute')
     try:
         result_set = []
         sid = ldap_conn.search(searchbase, ldap.SCOPE_SUBTREE, searchfilter)
@@ -36,18 +35,10 @@ def getLDAPUsers(ldap_conn):
 def getUserData(ldap_conn, user):
     searchbase = user
     searchfilter = user
-    attribute = ["sshPublicKey", "uid"]
-    sid = ldap_conn.search(searchbase, ldap.SCOPE_BASE, attrlist=attribute)
+    attributes = _config.get('ldap', 'attributes').split(" ")
+    sid = ldap_conn.search(searchbase, ldap.SCOPE_BASE, attrlist=attributes)
     result_type, result_data = ldap_conn.result(sid, 0)
-    if result_data[0][1].has_key("uid"):
-        username = result_data[0][1]["uid"][0]
-    else:
-        username = ""
-    if result_data[0][1].has_key("sshPublicKey"):
-        sshkeys = result_data[0][1]["sshPublicKey"]
-    else:
-        sshkeys = []
-    return username, sshkeys
+    return result_data[0][1]
 
 def main():
     userdata = {}
@@ -61,6 +52,10 @@ def main():
     #print getSSHKeysForUser(ldap_conn, "mail=dparsons@mozilla.com,o=com,dc=mozilla")
     #print getUsernameForUser(ldap_conn, "mail=dparsons@mozilla.com,o=com,dc=mozilla")
     #print getUserData(ldap_conn, "mail=dparsons@mozilla.com,o=com,dc=mozilla")
+    # userdata format: For a given user, their LDAP DN is the key
+    # The value all of this key is a dictionary, containing all values specified by
+    # 'attributes' in ldap2consul.conf
+    # e.g.: print userdata['mail=dparsons@mozilla.com,o=com,dc=mozilla']['sshPublicKey']
     for user in users:
         data = getUserData(ldap_conn, user)
         userdata[user] = data
