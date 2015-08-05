@@ -2,11 +2,14 @@
 
 import os
 import sys
+import pwd
 import ConfigParser
 import optparse
 import consul
 
+USERADD="/usr/sbin/useradd"
 DRYRUN=False
+
 _config = {}
 
 def load_config(config_file):
@@ -56,6 +59,24 @@ def readUsersFromConsul():
             users[uid]["sshPublicKey"][keynumber] = c.kv.get(keypath)
     return users
 
+def user_exists(user):
+    try:
+        pwd.getpwnam(user)
+    except KeyError:
+        return False
+    return True
+
+def adduser(username, userdata):
+    cmd = "%s -d '%s' -s '%s' -u '%s' -G sudo -m -U %s" % (
+        USERADD, userdata["homeDirectory"], userdata["loginShell"],
+        userdata["uidNumber"], username
+    )
+    if DRYRUN:
+        print cmd
+        return True
+    else:
+        return os.system(cmd)
+
 def main():
     global DRYRUN
     options = process_arguments()
@@ -63,7 +84,15 @@ def main():
         DRYRUN = True
         print "Dry run mode enabled."
     load_config("consul2unixusers.conf")
-    userdata = readUsersFromConsul()["elim"]["homeDirectory"]
+    userdata = readUsersFromConsul()
+
+    for user in userdata:
+        if not user_exists(user):
+            adduser(user, userdata[user])
+        else:
+            pass
+            #print "adduser aborted for Unix user '%s': already exists." % user
+
 
 if __name__ == '__main__':
     main()
