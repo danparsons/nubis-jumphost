@@ -3,8 +3,10 @@
 import os
 import sys
 import ConfigParser
+import optparse
 import consul
 
+DRYRUN=False
 _config = {}
 
 def load_config(config_file):
@@ -18,6 +20,14 @@ def load_config(config_file):
         print "ERROR: [consul] section not found in %s." % config_file
         sys.exit(-1)
     _config = config
+
+def process_arguments():
+    parser = optparse.OptionParser(version="%prog 0.1")
+    parser.set_usage("%prog [options]\nRead users from Consul and create them")
+    parser.add_option('-d', '--dry-run', action='store_true', dest='dryrun',
+        help="Show, but do not execute, any commands")
+    (options, args) = parser.parse_args()
+    return options
 
 def readUsersFromConsul():
     users = {}
@@ -47,6 +57,11 @@ def readUsersFromConsul():
     return users
 
 def main():
+    global DRYRUN
+    options = process_arguments()
+    if options.dryrun:
+        DRYRUN = True
+        print "Dry run mode enabled."
     load_config("consul2unixusers.conf")
     userdata = readUsersFromConsul()["elim"]["homeDirectory"]
 
