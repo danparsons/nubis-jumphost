@@ -152,8 +152,7 @@ def main():
             pass
             #print "adduser aborted for Unix user '%s': already exists." % user
 
-        #if user_exists(user):
-        if True:
+        if user_exists(user):
             writeSSHKeysForUser(user, userdata[user])
         else:
             print "ssh key writeout aborted for Unix user '%s': user doesn't exist." % user
