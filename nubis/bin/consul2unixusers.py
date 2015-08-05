@@ -8,6 +8,9 @@ import optparse
 import consul
 
 USERADD="/usr/sbin/useradd"
+CHOWN="/bin/chown"
+CHMOD="/bin/chmod"
+MKDIR="/bin/mkdir"
 DRYRUN=False
 
 _config = {}
@@ -77,6 +80,62 @@ def adduser(username, userdata):
     else:
         return os.system(cmd)
 
+def writeSSHKeysForUser(username, userdata):
+    # Does their home directory exist? If not, abort, as it should have been
+    # created by adduser()
+    homedir = userdata["homeDirectory"]
+    if not os.path.isdir(homedir):
+        print "ssh key writeout aborted for Unix user '%s': homedir '%s' doesn't exist." % \
+        (username, homedir)
+        return False
+
+    # Does their ~/.ssh directory exist? If not, create it"
+    sshdir = homedir + "/.ssh"
+    if not os.path.isdir(sshdir):
+        mkdircmd = "%s %s" % (MKDIR, sshdir)
+        chowncmd = "%s %s.%s %s" % (CHOWN, username, username, sshdir)
+        chmodcmd = "%s %s %s" % (CHMOD, 700, sshdir)
+        if DRYRUN:
+            print mkdircmd
+            print chowncmd
+            print chmodcmd
+        else:
+            os.system(mkdircmd)
+            os.system(chowncmd)
+            os.system(chmodcmd)
+
+    # Do they already have a ~/.ssh/authorized_keys file? If not, create it
+    authfilepath = sshdir + "/authorized_keys"
+    if not os.path.isfile(authfilepath):
+        authchowncmd = "%s %s.%s %s" % (CHOWN, username, username, authfilepath)
+        if DRYRUN:
+            print "os.mknod('%s', 0600)" % authfilepath
+            print authchowncmd
+        else:
+            os.mknod(authfilepath, 0600)
+            os.system(authchowncmd)
+
+    # Iterate through the keys we have for this user. Does it already exist
+    # in their authorized_keys? If not, add it.
+    try:
+        authfile_ro = open(authfilepath)
+        authfilecontents = authfile_ro.read()
+        authfile_ro.close()
+    except:
+        authfilecontents = ""
+    for q in userdata["sshPublicKey"]:
+        key = userdata["sshPublicKey"][q][1]["Value"]
+        if key not in authfilecontents:
+            # Key does not exist in the user's authorized_keys, so put it there
+            if DRYRUN:
+                print "authfile_rw = open('%s', 'a')" % authfilepath
+                print "authfile_rw.write('%s' + '\n')" % key
+                print 'authfile_rw.close()'
+            else:
+                authfile_rw = open(authfilepath, "a")
+                authfile_rw.write(key + "\n")
+                authfile_rw.close()
+
 def main():
     global DRYRUN
     options = process_arguments()
@@ -93,6 +152,11 @@ def main():
             pass
             #print "adduser aborted for Unix user '%s': already exists." % user
 
+        #if user_exists(user):
+        if True:
+            writeSSHKeysForUser(user, userdata[user])
+        else:
+            print "ssh key writeout aborted for Unix user '%s': user doesn't exist." % user
 
 if __name__ == '__main__':
     main()
