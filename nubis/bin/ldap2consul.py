@@ -3,10 +3,12 @@
 import os
 import sys
 import ConfigParser
+import optparse
 import ldap
 import consul
 
 _config = {}
+DRYRUN = False
 
 def load_config(config_file):
     global _config
@@ -19,6 +21,14 @@ def load_config(config_file):
         print "ERROR: [ldap] section not found in %s." % config_file
         sys.exit(-1)
     _config = config
+
+def process_arguments():
+    parser = optparse.OptionParser(version="%prog 0.1")
+    parser.set_usage("%prog [options]\nRead users from LDAP and write them to Consul")
+    parser.add_option('-d', '--dry-run', action='store_true', dest='dryrun',
+        help="Show, but do not execute, any commands")
+    (options, args) = parser.parse_args()
+    return options
 
 def getLDAPUsers(ldap_conn):
     searchbase = _config.get('ldap', 'searchbase')
@@ -74,14 +84,27 @@ def writeToConsul(userdata):
                     consul_key = "%s/sshkey%s" % (key, keynum)
                     consul_value = userdata[user]["sshPublicKey"][keynum]
                     keynum += 1
-                    c.kv.put(consul_key, consul_value)
+                    if DRYRUN:
+                        print "c.kv.put('%s', '%s')" % (consul_key, consul_value)
+                        continue
+                    else:
+                        c.kv.put(consul_key, consul_value)
             else:
                 # this is a non-sshkey attribute, so only considering the first
                 # value per attr
-                c.kv.put(key, value)
                 value = userdata[user][attr][0]
+                if DRYRUN:
+                    print "c.kv.put('%s', '%s')" % (key, value)
+                    continue
+                else:
+                    c.kv.put(key, value)
 
 def main():
+    global DRYRUN
+    options = process_arguments()
+    if options.dryrun:
+        DRYRUN = True
+        print "Dry run mode enabled."
     load_config("ldap2consul.conf")
     userdata = getAllUserdata()
     writeToConsul(userdata)
