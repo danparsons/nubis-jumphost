@@ -32,6 +32,8 @@ def process_arguments():
     parser.set_usage("%prog [options]\nRead users from Consul and create them")
     parser.add_option('-d', '--dry-run', action='store_true', dest='dryrun',
         help="Show, but do not execute, any commands")
+    parser.add_option('-f', dest='config', default='consul2unixusers.conf',
+        help="Config file. Default: %default")
     (options, args) = parser.parse_args()
     return options
 
@@ -142,7 +144,7 @@ def main():
     if options.dryrun:
         DRYRUN = True
         print "Dry run mode enabled."
-    load_config("consul2unixusers.conf")
+    load_config(options.config)
     userdata = readUsersFromConsul()
 
     for user in userdata:
