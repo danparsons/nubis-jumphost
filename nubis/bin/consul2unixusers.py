@@ -8,9 +8,6 @@ import optparse
 import consul
 
 USERADD="/usr/sbin/useradd"
-CHOWN="/bin/chown"
-CHMOD="/bin/chmod"
-MKDIR="/bin/mkdir"
 DRYRUN=False
 
 _config = {}
@@ -90,32 +87,28 @@ def writeSSHKeysForUser(username, userdata):
         print "ssh key writeout aborted for Unix user '%s': homedir '%s' doesn't exist." % \
         (username, homedir)
         return False
+    uid = pwd.getpwnam(username).pw_uid
+    gid = pwd.getpwnam(username).pw_gid
 
     # Does their ~/.ssh directory exist? If not, create it"
     sshdir = homedir + "/.ssh"
     if not os.path.isdir(sshdir):
-        mkdircmd = "%s %s" % (MKDIR, sshdir)
-        chowncmd = "%s %s.%s %s" % (CHOWN, username, username, sshdir)
-        chmodcmd = "%s %s %s" % (CHMOD, 700, sshdir)
         if DRYRUN:
-            print mkdircmd
-            print chowncmd
-            print chmodcmd
+            print "os.mkdir('%s', '%s')" % (sshdir, 0700)
+            print "os.chown('%s', '%s', '%s')" % (sshdir, uid, gid)
         else:
-            os.system(mkdircmd)
-            os.system(chowncmd)
-            os.system(chmodcmd)
+            os.mkdir(sshdir, 0700)
+            os.chown(sshdir, uid, gid)
 
     # Do they already have a ~/.ssh/authorized_keys file? If not, create it
     authfilepath = sshdir + "/authorized_keys"
     if not os.path.isfile(authfilepath):
-        authchowncmd = "%s %s.%s %s" % (CHOWN, username, username, authfilepath)
         if DRYRUN:
             print "os.mknod('%s', 0600)" % authfilepath
-            print authchowncmd
+            print "os.chown('%s', '%s', '%s')" % (authfilepath, uid, gid)
         else:
             os.mknod(authfilepath, 0600)
-            os.system(authchowncmd)
+            os.chown(authfilepath, uid, gid)
 
     # Iterate through the keys we have for this user. Does it already exist
     # in their authorized_keys? If not, add it.
