@@ -13,7 +13,7 @@ DRYRUN = False
 def load_config(config_file):
     global _config
     if not os.path.exists(config_file):
-        print "ERROR: Config file %s not found." % config_file
+        print "ERROR: Config file '%s' not found." % config_file
         sys.exit(-1)
     config = ConfigParser.RawConfigParser()
     config.read(config_file)
@@ -27,6 +27,8 @@ def process_arguments():
     parser.set_usage("%prog [options]\nRead users from LDAP and write them to Consul")
     parser.add_option('-d', '--dry-run', action='store_true', dest='dryrun',
         help="Show, but do not execute, any commands")
+    parser.add_option('-f', dest='config', default='ldap2consul.conf',
+        help="Config file. Default: %default")
     (options, args) = parser.parse_args()
     return options
 
@@ -105,7 +107,7 @@ def main():
     if options.dryrun:
         DRYRUN = True
         print "Dry run mode enabled."
-    load_config("ldap2consul.conf")
+    load_config(options.config)
     userdata = getAllUserdata()
     writeToConsul(userdata)
 
